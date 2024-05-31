@@ -1,26 +1,13 @@
-const express = require('express');
-const { ApolloServer, gql } = require('apollo-server-express');
-const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = new Sequelize('postgres://postgres:1234@localhost:5432/postgres');
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+import userModel from './models/userModel.js';
 
-const User = sequelize.define('User', {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-});
-
-const typeDefs = gql`
+const typeDefs = `
   type User {
-    id: ID!
-    name: String!
-    email: String!
+    id: ID
+    name: String
+    email: String
   }
-
   type Query {
     users: [User]
   }
@@ -32,27 +19,37 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    users: async () => await User.findAll(),
+    users: () => userModel.findAll(),
   },
   Mutation: {
     addUser: async (_, { name, email }) => {
-      const user = await User.create({ name, email });
+      const user = await userModel.create({ name, email });
       return user;
     },
   },
 };
 
-async function startServer() {
-  const server = new ApolloServer({ typeDefs, resolvers });
 
-  await server.start();
+/* Start Apollo Server  */
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+});
 
-  const app = express();
-  server.applyMiddleware({ app });
+const { url } = await startStandaloneServer(server, {
+  listen: { port: 4000 },
+});
 
-  app.listen({ port: 4000 }, () =>
-    console.log(`Server ready at http://localhost:4000${server.graphqlPath}`)
-  );
-}
+console.log(`🚀  Server ready at: ${url}`);
 
-startServer();
+
+
+
+
+/*
+
+Since we are using type = module to load ES6 modules.
+
+We have to metion .js as file extension while importing.
+
+*/
